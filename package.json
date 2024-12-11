@@ -3,6 +3,12 @@
   "displayName": "svg-visualizer",
   "description": "",
   "version": "0.0.1",
+  "publisher": "heazeel",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heazeel/svg-visualizer"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.95.0"
   },
