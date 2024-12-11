@@ -29,7 +29,7 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
       const svgContent = TextEditorTools.getTextFromRange(editor, range);
       const ast = parse(svgContent, {
         sourceType: "module",
-        plugins: ["jsx", "typescript"],
+        plugins: ["jsx"],
       });
 
       traverse(ast, {
