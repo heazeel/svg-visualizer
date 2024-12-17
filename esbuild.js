@@ -42,7 +42,7 @@ async function main() {
       esbuildProblemMatcherPlugin,
       copy({
         assets: {
-          from: ["src/images/*"],
+          from: ["./images/*"],
           to: ["images"],
         },
       }),
@@ -50,6 +50,12 @@ async function main() {
         assets: {
           from: ["./package.json"],
           to: ["./package.json"],
+        },
+      }),
+      copy({
+        assets: {
+          from: ["./preview-ui/dist/assets/*"],
+          to: ["preview-ui"],
         },
       }),
     ],

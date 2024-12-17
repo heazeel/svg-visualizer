@@ -1,8 +1,17 @@
 import * as vscode from "vscode";
-import show from "./commands/show";
 import CodeLensProvider from "./providers/CodeLensProvider";
+import ShowGallery from "./commands/ShowGallery";
 
 export function activate(context: vscode.ExtensionContext) {
+  const showGallery = new ShowGallery(context);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      showGallery.name,
+      showGallery.execute,
+      showGallery
+    )
+  );
+
   const codeLensProvider = new CodeLensProvider();
   vscode.languages.registerCodeLensProvider(
     ["javascript", "javascriptreact", "typescript", "typescriptreact", "xml"],
@@ -13,7 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
         codeLensModules[key].command,
-        codeLensModules[key].commandHandler.bind(codeLensModules[key])
+        codeLensModules[key].commandHandler,
+        codeLensModules[key]
       )
     );
   });

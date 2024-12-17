@@ -10,9 +10,10 @@ import {
   Selection,
   window,
 } from "vscode";
-import { FileTools } from "./file";
 
-export class TextEditorTools {
+import FileTools from "./file";
+
+class EditorTools {
   public static getCursorPrefixText(editor: TextEditor) {
     const position = editor.selection.active;
     const range = new Range(new Position(0, 0), position);
@@ -116,3 +117,5 @@ export class TextEditorTools {
     return text;
   }
 }
+
+export default EditorTools;

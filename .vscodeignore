@@ -3,6 +3,7 @@
 out/**
 node_modules/**
 src/**
+preview-ui/**
 .gitignore
 .yarnrc
 esbuild.js

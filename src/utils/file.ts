@@ -1,9 +1,8 @@
 import os from "os";
 import path from "path";
 import { Uri, workspace, OpenDialogOptions, window, Range } from "vscode";
-// import { Schemes } from '../constants';
 
-export class FileTools {
+class FileTools {
   public static async selectWorkspaceFolder() {
     const options: OpenDialogOptions = {
       canSelectMany: false,
@@ -113,3 +112,5 @@ export class FileTools {
   //   }
   // }
 }
+
+export default FileTools;

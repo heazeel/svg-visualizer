@@ -1,20 +1,11 @@
-import {
-  CodeLensProvider,
-  TextDocument,
-  CodeLens,
-  window,
-  ViewColumn,
-  WebviewPanel,
-  commands,
-  Range,
-} from "vscode";
+import { CodeLens, window, ViewColumn, WebviewPanel, Range } from "vscode";
 import { parse } from "@babel/parser";
 import generate from "@babel/generator";
 import traverse, { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import CodeLensModule from "./CodeLensModule";
-import { createRange } from "../../utils";
-import { TextEditorTools } from "../../../utils/editor";
+import RangeTools from "../../../utils/range";
+import EditorTools from "../../../utils/editor";
 
 export default class SvgDetectCodeLensModule extends CodeLensModule<
   Range[],
@@ -26,7 +17,7 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
   public commandHandler(range: Range) {
     const editor = window.activeTextEditor;
     if (editor) {
-      const svgContent = TextEditorTools.getTextFromRange(editor, range);
+      const svgContent = EditorTools.getTextFromRange(editor, range);
       const ast = parse(svgContent, {
         sourceType: "module",
         plugins: ["jsx"],
@@ -38,7 +29,8 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
           if (
             t.isJSXIdentifier(name) &&
             /[a-z][A-Z]/.test(name.name) &&
-            name.name !== "viewBox"
+            name.name !== "viewBox" &&
+            name.name !== "gradientUnits"
           ) {
             name.name = name.name.replace(
               /([a-z])([A-Z])/g,
@@ -88,6 +80,10 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVG Visualizer</title>
     <style>
+      body {
+        width: 100%;
+        height: 100vh;
+      }
       #svgContainer {
         display: inline-block;
         position: relative;
@@ -115,7 +111,9 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
       <button class="hover" onclick="resetZoom()">recover</button>
     </div>
     <div id="svgContainer">
-      <div id="svgContent">${svgContent}</div>
+      <div id="svgContent"><img alt src="data:image/svg+xml,${encodeURIComponent(
+        svgContent
+      )}"></div>
     </div>
     <script>
       let scale = 1;
@@ -144,7 +142,7 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
       closingEl.name.name === "svg" &&
       path.node.loc
     ) {
-      const codeLens = new CodeLens(createRange(path.node.loc));
+      const codeLens = new CodeLens(RangeTools.createRange(path.node.loc));
       codeLenses.push(codeLens);
       path.skip();
     }
