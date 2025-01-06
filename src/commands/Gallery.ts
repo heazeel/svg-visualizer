@@ -6,13 +6,19 @@ import traverse from "@babel/traverse";
 import generate from "@babel/generator";
 import * as t from "@babel/types";
 import RangeTools from "../utils/range";
-import WebviewPanelProvider from "../providers/WebviewPanelProvider";
+import GalleryPanelProvider from "../providers/WebviewPanelProvider";
 import Command from "./Command";
+import { getConvertedSvgCode, getOriginSvgCode } from "../utils/babel";
 
 class ShowGallery implements Command {
   public name: string = "svgVisualizer.showGallery";
+  private galleryPanelProvider: GalleryPanelProvider;
 
-  constructor(private readonly context: ExtensionContext) {}
+  constructor(private readonly context: ExtensionContext) {
+    this.galleryPanelProvider = new GalleryPanelProvider(
+      this.context.extensionUri
+    );
+  }
 
   public execute(uri: Uri) {
     if (uri && uri.fsPath) {
@@ -39,7 +45,11 @@ class ShowGallery implements Command {
 
       traverseDirectory(uri.fsPath);
 
-      const svgCodes: { path: string; range: Range; code: string }[] = [];
+      const svgCodes: {
+        path: string;
+        range: t.SourceLocation;
+        code: string;
+      }[] = [];
 
       if (jsFiles.length > 0) {
         for (const jsFile of jsFiles) {
@@ -51,19 +61,13 @@ class ShowGallery implements Command {
 
           traverse(ast, {
             JSXElement(path) {
-              const openingEl = path.node.openingElement;
-              const closingEl = path.node.closingElement;
-              if (
-                t.isJSXIdentifier(openingEl.name) &&
-                openingEl.name.name === "svg" &&
-                t.isJSXIdentifier(closingEl?.name) &&
-                closingEl.name.name === "svg" &&
-                path.node.loc
-              ) {
-                const svgCode = generate(path.node).code;
+              const _path = getOriginSvgCode(path);
+              if (_path) {
+                const svgCode = getConvertedSvgCode(_path);
+
                 svgCodes.push({
                   path: jsFile,
-                  range: RangeTools.createRange(path.node.loc),
+                  range: _path.node.loc as t.SourceLocation,
                   code: svgCode,
                 });
               }
@@ -71,7 +75,7 @@ class ShowGallery implements Command {
           });
         }
 
-        WebviewPanelProvider.render(this.context.extensionUri);
+        this.galleryPanelProvider.render(svgCodes);
       } else {
         window.showInformationMessage(
           "No SVG codes found in the selected folder"

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import CodeLensProvider from "./providers/CodeLensProvider";
-import ShowGallery from "./commands/ShowGallery";
+import ShowGallery from "./commands/Gallery";
 
 export function activate(context: vscode.ExtensionContext) {
   const showGallery = new ShowGallery(context);

@@ -17,7 +17,7 @@
     "vite-plugin-solid": "^2.11.0"
   },
   "dependencies": {
-    "@vscode-elements/elements": "^1.9.0",
+    "@ark-ui/solid": "^4.7.0",
     "solid-js": "^1.9.3"
   }
 }

@@ -11,62 +11,57 @@ import {
   WebviewMessageTools,
   EventEmitterMessageTools,
 } from "../../utils/message";
+import { GalleryMsgCenter } from "../../message/Gallery";
 import events from "events";
 
 class WebviewPanelProvider {
-  public static currentPanel: WebviewPanelProvider | undefined;
-  private readonly _panel: WebviewPanel;
+  private _panel: WebviewPanel | undefined = undefined;
   private _disposables: Disposable[] = [];
+  private _webviewMessageTools: WebviewMessageTools | undefined = undefined;
 
-  private constructor(panel: WebviewPanel, extensionUri: Uri) {
-    this._panel = panel;
-    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-    this._panel.webview.html = this._getWebviewContent(
-      this._panel.webview,
-      extensionUri
-    );
-    this._setWebviewMessageListener(this._panel.webview);
-  }
+  public constructor(readonly extensionUri: Uri) {}
 
-  public static render(extensionUri: Uri) {
-    if (WebviewPanelProvider.currentPanel) {
-      WebviewPanelProvider.currentPanel._panel.reveal(ViewColumn.Beside, true);
-    } else {
-      const panel = window.createWebviewPanel(
+  public render(svgCodes: any) {
+    if (!this._panel) {
+      this._panel = window.createWebviewPanel(
         "svgVisualizer",
-        "SVG Visualizer",
+        "SVG Gallery",
         ViewColumn.Beside,
         {
           enableScripts: true,
-          localResourceRoots: [Uri.joinPath(extensionUri, "dist")],
+          localResourceRoots: [Uri.joinPath(this.extensionUri, "dist")],
         }
       );
-
-      WebviewPanelProvider.currentPanel = new WebviewPanelProvider(
-        panel,
-        extensionUri
-      );
+      this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     }
+
+    this._panel.webview.html = this._getWebviewContent(
+      this._panel.webview,
+      svgCodes
+    );
+    this._setWebviewMessageListener(this._panel.webview);
+
+    this._panel.reveal(ViewColumn.Beside, true);
   }
 
   public dispose() {
-    WebviewPanelProvider.currentPanel = undefined;
-    this._panel.dispose();
+    this._panel?.dispose();
     while (this._disposables.length) {
       const disposable = this._disposables.pop();
       if (disposable) {
         disposable.dispose();
       }
     }
+    this._panel = undefined;
   }
 
-  private _getWebviewContent(webview: Webview, extensionUri: Uri) {
-    const scriptUri = getUri(webview, extensionUri, [
+  private _getWebviewContent(webview: Webview, svgCodes: any) {
+    const scriptUri = getUri(webview, this.extensionUri, [
       "dist",
       "preview-ui",
       "main.js",
     ]);
-    const stylesUri = getUri(webview, extensionUri, [
+    const stylesUri = getUri(webview, this.extensionUri, [
       "dist",
       "preview-ui",
       "index.css",
@@ -79,9 +74,12 @@ class WebviewPanelProvider {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}';">
           <title>SVG Visualizer</title>
           <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+          <script nonce="${nonce}">
+            window.type = "gallery";
+            window.svgCodes = ${JSON.stringify(svgCodes)};
+          </script>
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
         </head>
         <body>
@@ -92,16 +90,14 @@ class WebviewPanelProvider {
   }
 
   private _setWebviewMessageListener(webview: Webview) {
-    const webviewMessageTools = new WebviewMessageTools(webview);
-    webviewMessageTools.on("preview-msg", (data: any) => {
-      window.showInformationMessage(data.text);
-    });
+    this._webviewMessageTools = new WebviewMessageTools(webview);
+    new GalleryMsgCenter(this._webviewMessageTools).register();
 
     // 插件内部通信
     const eventEmitterMessageTools = new EventEmitterMessageTools(
       new events.EventEmitter()
     );
-    eventEmitterMessageTools.webviewMessageTools = webviewMessageTools;
+    eventEmitterMessageTools.webviewMessageTools = this._webviewMessageTools;
     eventEmitterMessageTools.on("message", (data: any) => {});
   }
 }

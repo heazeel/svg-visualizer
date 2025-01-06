@@ -6,6 +6,7 @@ import * as t from "@babel/types";
 import CodeLensModule from "./CodeLensModule";
 import RangeTools from "../../../utils/range";
 import EditorTools from "../../../utils/editor";
+import { getConvertedSvgCode, getOriginSvgCode } from "../../../utils/babel";
 
 export default class SvgDetectCodeLensModule extends CodeLensModule<
   Range[],
@@ -23,50 +24,34 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
         plugins: ["jsx"],
       });
 
+      const _this = this;
+
       traverse(ast, {
-        JSXAttribute(path) {
-          const name = path.node.name;
-          if (
-            t.isJSXIdentifier(name) &&
-            /[a-z][A-Z]/.test(name.name) &&
-            name.name !== "viewBox" &&
-            name.name !== "gradientUnits"
-          ) {
-            name.name = name.name.replace(
-              /([a-z])([A-Z])/g,
-              (match, p1, p2) => {
-                return p1 + "-" + p2.toLowerCase();
+        Program(path) {
+          const svgCode = getConvertedSvgCode(path);
+
+          if (_this.panel) {
+            _this.panel.webview.html = _this.getWebviewContent(svgCode);
+            _this.panel.reveal(ViewColumn.Beside, true);
+          } else {
+            _this.panel = window.createWebviewPanel(
+              "svgVisualizer",
+              "SVG Visualizer",
+              ViewColumn.Beside,
+              {
+                enableScripts: true,
+                retainContextWhenHidden: true,
               }
             );
+
+            _this.panel.webview.html = _this.getWebviewContent(svgCode);
+
+            _this.panel.onDidDispose(() => {
+              _this.panel = undefined;
+            });
           }
         },
       });
-
-      let { code: convertedSvgContent } = generate(ast);
-      if (convertedSvgContent.endsWith(";")) {
-        convertedSvgContent = convertedSvgContent.slice(0, -1);
-      }
-
-      if (this.panel) {
-        this.panel.webview.html = this.getWebviewContent(convertedSvgContent);
-        this.panel.reveal(ViewColumn.Beside, true);
-      } else {
-        this.panel = window.createWebviewPanel(
-          "svgVisualizer",
-          "SVG Visualizer",
-          ViewColumn.Beside,
-          {
-            enableScripts: true,
-            retainContextWhenHidden: true,
-          }
-        );
-
-        this.panel.webview.html = this.getWebviewContent(convertedSvgContent);
-
-        this.panel.onDidDispose(() => {
-          this.panel = undefined;
-        });
-      }
 
       window.showTextDocument(editor.document, editor.viewColumn);
     }
@@ -111,7 +96,7 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
       <button class="hover" onclick="resetZoom()">recover</button>
     </div>
     <div id="svgContainer">
-      <div id="svgContent"><img alt src="data:image/svg+xml,${encodeURIComponent(
+      <div id="svgContent"><img alt="" src="data:image/svg+xml,${encodeURIComponent(
         svgContent
       )}"></div>
     </div>
@@ -133,16 +118,11 @@ export default class SvgDetectCodeLensModule extends CodeLensModule<
   public provide(path: NodePath<t.JSXElement>) {
     const codeLenses: CodeLens[] = [];
 
-    const openingEl = path.node.openingElement;
-    const closingEl = path.node.closingElement;
-    if (
-      t.isJSXIdentifier(openingEl.name) &&
-      openingEl.name.name === "svg" &&
-      t.isJSXIdentifier(closingEl?.name) &&
-      closingEl.name.name === "svg" &&
-      path.node.loc
-    ) {
-      const codeLens = new CodeLens(RangeTools.createRange(path.node.loc));
+    const _path = getOriginSvgCode(path);
+    if (_path) {
+      const codeLens = new CodeLens(
+        RangeTools.createRange(_path.node.loc as t.SourceLocation)
+      );
       codeLenses.push(codeLens);
       path.skip();
     }

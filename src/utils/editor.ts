@@ -9,6 +9,8 @@ import {
   TextEditorRevealType,
   Selection,
   window,
+  ViewColumn,
+  Uri,
 } from "vscode";
 
 import FileTools from "./file";
@@ -112,9 +114,34 @@ class EditorTools {
     await editor.document.save();
   }
 
+  // 获取编辑区内容
   public static getTextFromRange(editor: TextEditor, range: Range) {
     const text = editor.document.getText(range);
     return text;
+  }
+
+  public static async openDocumentAndSelectRange(path: string, range: Range) {
+    const uri = Uri.file(path);
+    const document = await workspace.openTextDocument(uri);
+    const editor = await window.showTextDocument(document, {
+      viewColumn: ViewColumn.One,
+      preserveFocus: false,
+    });
+
+    // 创建选择区域
+    const selection = new Selection(
+      range.start.line,
+      range.start.character,
+      range.end.line,
+      range.end.character
+    );
+
+    // 设置选中区域并滚动到可见区域
+    editor.selection = selection;
+    editor.revealRange(
+      new Range(selection.start, selection.end),
+      2 // 在中间显示
+    );
   }
 }
 

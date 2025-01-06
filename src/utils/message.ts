@@ -3,12 +3,12 @@ import EventEmitter from "events";
 
 export interface Message {
   type: string;
-  content: any;
+  payload: any;
 }
 
 export abstract class MessageTools {
-  public abstract on(type: string, callback: (content: any) => void): void;
-  public abstract postMessage(type: string, content: any): void;
+  public abstract on(type: string, callback: (payload: any) => void): void;
+  public abstract postMessage(type: string, payload: any): void;
 }
 
 /**
@@ -19,19 +19,19 @@ export class EventEmitterMessageTools implements MessageTools {
 
   constructor(readonly eventEmitter: EventEmitter) {}
 
-  public on(type: string, callback: (content: any) => void) {
+  public on(type: string, callback: (payload: any) => void) {
     this.eventEmitter.on("message", (data: Message) => {
       try {
         if (data.type === type) {
-          callback(data.content);
+          callback(data.payload);
         }
       } catch (error) {}
     });
   }
 
-  public postMessage(type: string, content: any) {
+  public postMessage(type: string, payload: any) {
     // 发送消息给 Webview UI
-    this.webviewMessageTools?.postMessage(type, content);
+    this.webviewMessageTools?.postMessage(type, payload);
   }
 }
 
@@ -46,11 +46,11 @@ export class WebviewMessageTools implements MessageTools {
    * @param type 消息类型
    * @param callback 消息回调
    */
-  public on(type: string, callback: (content: any) => void) {
+  public on(type: string, callback: (payload: any) => void) {
     // 相关 API 参考 https://code.visualstudio.com/api/references/vscode-api#Webview
     this.webview.onDidReceiveMessage((message: Message) => {
       if (message.type === type) {
-        callback(message.content);
+        callback(message.payload);
       }
     });
   }
@@ -58,9 +58,9 @@ export class WebviewMessageTools implements MessageTools {
   /**
    * 发送消息
    * @param type 消息类型
-   * @param content 消息内容
+   * @param payload 消息内容
    */
-  public postMessage(type: string, content: any) {
-    return this.webview.postMessage({ type, content });
+  public postMessage(type: string, payload: any) {
+    return this.webview.postMessage({ type, payload });
   }
 }
