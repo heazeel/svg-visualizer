@@ -2,7 +2,7 @@
   "name": "svg-visualizer",
   "displayName": "Svg Visualizer",
   "description": "Visualize SVG code in the editor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "heazeel",
   "extensionKind": [
     "ui",
