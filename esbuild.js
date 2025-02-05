@@ -1,5 +1,6 @@
 const esbuild = require("esbuild");
 const copy = require("esbuild-plugin-copy").default;
+const alias = require("esbuild-plugin-alias");
 
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
@@ -40,6 +41,9 @@ async function main() {
     logLevel: "silent",
     plugins: [
       esbuildProblemMatcherPlugin,
+      alias({
+        "@": "./src",
+      }),
       copy({
         assets: {
           from: ["./images/*"],

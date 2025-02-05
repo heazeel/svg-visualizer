@@ -1,15 +1,22 @@
-import { CodeLensProvider, TextDocument, CodeLens } from "vscode";
+import {
+  CodeLensProvider,
+  TextDocument,
+  CodeLens,
+  ExtensionContext,
+} from "vscode";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
 import CodeLensModule from "./modules/CodeLensModule";
 import SvgDetectCodeLensModule from "./modules/SvgDetect";
 
 export default class CustomCodeLensProvider implements CodeLensProvider {
-  public modules: { [key: string]: CodeLensModule<any> } = {
-    svgDetect: new SvgDetectCodeLensModule(),
-  };
+  public modules: { [key: string]: CodeLensModule<any> } = {};
   public codeLensModules: CodeLensModule<any>[] = [];
   private codeLenses: CodeLens[] = [];
+
+  constructor(private readonly context: ExtensionContext) {
+    this.modules.svgDetect = new SvgDetectCodeLensModule(this.context);
+  }
 
   provideCodeLenses(document: TextDocument): CodeLens[] {
     this.codeLenses = [];

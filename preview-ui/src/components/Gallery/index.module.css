@@ -1,0 +1,56 @@
+.container {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+  align-items: start;
+  gap: 10px;
+}
+
+.item_container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: contain;
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+  background-image: linear-gradient(
+      45deg,
+      #141414 25%,
+      transparent 25%,
+      transparent 75%,
+      #141414 75%,
+      #141414
+    ),
+    linear-gradient(
+      45deg,
+      #141414 25%,
+      transparent 25%,
+      transparent 75%,
+      #141414 75%,
+      #141414
+    );
+  border: 1px solid var(--vscode-charts-lines);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.item_container:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.item_container.selected {
+  border-color: var(--vscode-focusBorder);
+}
+
+.item_container svg {
+  width: 100%;
+  height: 100%;
+}

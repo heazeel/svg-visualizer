@@ -1,11 +1,15 @@
-import { Uri, ExtensionContext, Range, window } from "vscode";
+import {
+  Uri,
+  ExtensionContext,
+  workspace,
+  window,
+  ProgressLocation,
+} from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
-import generate from "@babel/generator";
 import * as t from "@babel/types";
-import RangeTools from "../utils/range";
 import GalleryPanelProvider from "../providers/WebviewPanelProvider";
 import Command from "./Command";
 import { getConvertedSvgCode, getOriginSvgCode } from "../utils/babel";
@@ -13,6 +17,7 @@ import { getConvertedSvgCode, getOriginSvgCode } from "../utils/babel";
 class ShowGallery implements Command {
   public name: string = "svgVisualizer.showGallery";
   private galleryPanelProvider: GalleryPanelProvider;
+  private rootPath: string = workspace.workspaceFolders?.[0].uri.fsPath || "";
 
   constructor(private readonly context: ExtensionContext) {
     this.galleryPanelProvider = new GalleryPanelProvider(
@@ -20,8 +25,9 @@ class ShowGallery implements Command {
     );
   }
 
-  public execute(uri: Uri) {
+  public async execute(uri: Uri) {
     if (uri && uri.fsPath) {
+      const _this = this;
       const jsFiles: string[] = [];
 
       function traverseDirectory(dir: string) {
@@ -46,42 +52,72 @@ class ShowGallery implements Command {
       traverseDirectory(uri.fsPath);
 
       const svgCodes: {
-        path: string;
+        path: {
+          realPath: string;
+          rootPath: string;
+        };
         range: t.SourceLocation;
         code: string;
       }[] = [];
 
-      if (jsFiles.length > 0) {
-        for (const jsFile of jsFiles) {
-          const code = fs.readFileSync(jsFile, "utf8");
-          const ast = parser.parse(code, {
-            sourceType: "module",
-            plugins: ["typescript", "jsx"],
-          });
-
-          traverse(ast, {
-            JSXElement(path) {
-              const _path = getOriginSvgCode(path);
-              if (_path) {
-                const svgCode = getConvertedSvgCode(_path);
-
-                svgCodes.push({
-                  path: jsFile,
-                  range: _path.node.loc as t.SourceLocation,
-                  code: svgCode,
-                });
-              }
-            },
-          });
-        }
-
-        this.galleryPanelProvider.render(svgCodes);
-      } else {
-        window.showInformationMessage(
-          "No SVG codes found in the selected folder"
-        );
+      if (!jsFiles.length) {
+        return this.showInformationMessage();
       }
+
+      await window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Collecting SVG codes",
+          cancellable: false,
+        },
+        async (progress) => {
+          for (let i = 0; i < jsFiles.length; i++) {
+            const jsFile = jsFiles[i];
+            const code = fs.readFileSync(jsFile, "utf8");
+            const ast = parser.parse(code, {
+              sourceType: "module",
+              plugins: ["typescript", "jsx"],
+              attachComment: false,
+            });
+
+            traverse(ast, {
+              JSXElement(path) {
+                const _path = getOriginSvgCode(path);
+                if (_path) {
+                  const svgCode = getConvertedSvgCode(_path);
+
+                  const workspaceFolder = workspace.getWorkspaceFolder(
+                    Uri.file(jsFile)
+                  );
+                  const rootPath = workspaceFolder
+                    ? workspaceFolder.uri.fsPath
+                    : "";
+
+                  svgCodes.push({
+                    path: {
+                      realPath: jsFile,
+                      rootPath,
+                    },
+                    range: _path.node.loc as t.SourceLocation,
+                    code: svgCode,
+                  });
+                }
+              },
+            });
+          }
+        }
+      );
+
+      if (!svgCodes.length) {
+        return this.showInformationMessage();
+      }
+
+      this.galleryPanelProvider.render({ webviewType: "gallery", svgCodes });
     }
+  }
+
+  private showInformationMessage() {
+    window.showInformationMessage("No SVG codes found in the selected folder");
   }
 }
 

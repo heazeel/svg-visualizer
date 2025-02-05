@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const codeLensProvider = new CodeLensProvider();
+  const codeLensProvider = new CodeLensProvider(context);
   vscode.languages.registerCodeLensProvider(
     ["javascript", "javascriptreact", "typescript", "typescriptreact", "xml"],
     codeLensProvider

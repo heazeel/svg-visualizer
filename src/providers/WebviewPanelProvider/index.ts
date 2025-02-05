@@ -6,13 +6,21 @@ import {
   Webview,
   Disposable,
 } from "vscode";
-import { getNonce, getUri } from "../../utils/common";
-import {
-  WebviewMessageTools,
-  EventEmitterMessageTools,
-} from "../../utils/message";
-import { GalleryMsgCenter } from "../../message/Gallery";
+import * as t from "@babel/types";
+import { getNonce, getUri } from "@/utils/common";
+import { WebviewMessageTools, EventEmitterMessageTools } from "@/utils/message";
+import { GalleryMsgCenter } from "@/message/Gallery";
 import events from "events";
+
+type WebviewType = "gallery" | "preview";
+interface SvgCode {
+  path: {
+    realPath: string;
+    rootPath: string;
+  };
+  range: t.SourceLocation;
+  code: string;
+}
 
 class WebviewPanelProvider {
   private _panel: WebviewPanel | undefined = undefined;
@@ -21,11 +29,17 @@ class WebviewPanelProvider {
 
   public constructor(readonly extensionUri: Uri) {}
 
-  public render(svgCodes: any) {
+  public render({
+    webviewType,
+    svgCodes,
+  }: {
+    webviewType: WebviewType;
+    svgCodes: SvgCode[];
+  }) {
     if (!this._panel) {
       this._panel = window.createWebviewPanel(
         "svgVisualizer",
-        "SVG Gallery",
+        webviewType === "gallery" ? "SVG Gallery" : "SVG Preview",
         ViewColumn.Beside,
         {
           enableScripts: true,
@@ -35,10 +49,11 @@ class WebviewPanelProvider {
       this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     }
 
-    this._panel.webview.html = this._getWebviewContent(
-      this._panel.webview,
-      svgCodes
-    );
+    this._panel.webview.html = this._getWebviewContent({
+      webview: this._panel.webview,
+      webviewType,
+      svgCodes,
+    });
     this._setWebviewMessageListener(this._panel.webview);
 
     this._panel.reveal(ViewColumn.Beside, true);
@@ -55,7 +70,15 @@ class WebviewPanelProvider {
     this._panel = undefined;
   }
 
-  private _getWebviewContent(webview: Webview, svgCodes: any) {
+  private _getWebviewContent({
+    webview,
+    webviewType,
+    svgCodes,
+  }: {
+    webview: Webview;
+    webviewType: WebviewType;
+    svgCodes: SvgCode[];
+  }) {
     const scriptUri = getUri(webview, this.extensionUri, [
       "dist",
       "preview-ui",
@@ -77,7 +100,7 @@ class WebviewPanelProvider {
           <title>SVG Visualizer</title>
           <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
           <script nonce="${nonce}">
-            window.type = "gallery";
+            window.webviewType = ${JSON.stringify(webviewType)};
             window.svgCodes = ${JSON.stringify(svgCodes)};
           </script>
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
