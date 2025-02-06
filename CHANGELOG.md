@@ -1,9 +1,17 @@
 # Change Log
 
-All notable changes to the "svg-visualizer" extension will be documented in this file.
+## 0.0.1
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+自动识别 svg 代码，显示 codeLens 按钮，点击可展示 svg
 
-## [Unreleased]
+## 0.0.2
 
-- Initial release
+增加一些项目描述信息
+
+## 0.0.3
+
+增加批量预览功能，可查看指定文件夹下的所有 svg
+
+## 0.0.4
+
+处理 svg 代码识别边界条件，修改 readme
